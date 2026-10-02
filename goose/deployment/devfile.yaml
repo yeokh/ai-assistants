@@ -1,0 +1,125 @@
+schemaVersion: 2.2.2
+metadata:
+  name: goose-agent
+  displayName: Goose AI Agent
+  description: >
+    Goose AI coding agent on OpenShift Dev Spaces with the Web Terminal editor.
+    Community Goose is pre-installed. Provider and API keys are injected at
+    runtime via environment variables or an OpenShift Secret.
+  tags:
+    - AI
+    - Agent
+    - Goose
+    - Terminal
+
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+  # Pin Web Terminal (not VS Code). Requires the editor to be registered on
+  # the cluster — see README-custom-devspace-editor.md.
+  che-editor: che-incubator/che-web-terminal/latest
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Before opening this workspace:
+#
+#   1. Build and push the custom image:
+#        podman build \
+#          -t quay.io/kenghua_yeo/goose-devspaces:latest \
+#          -f deployment/Containerfile-devspaces \
+#          deployment/
+#        podman push quay.io/kenghua_yeo/goose-devspaces:latest
+#
+#   2. Register the Web Terminal editor (once per cluster) — see
+#      README-custom-devspace-editor.md
+#
+#   3. Supply API keys via Secret in your Dev Spaces namespace, or set them
+#      in Dev Spaces User Preferences → Environment Variables.
+#
+#   4. Open via Dev Spaces dashboard (select Web Terminal) or:
+#        https://<devspaces-host>/dashboard/#/load-factory?url=<repo-url>&che-editor=che-incubator/che-web-terminal/latest
+# ─────────────────────────────────────────────────────────────────────────────
+
+components:
+  - name: goose
+    container:
+      image: quay.io/kenghua_yeo/goose-devspaces:latest
+      memoryLimit: 2Gi
+      memoryRequest: 512Mi
+      cpuLimit: "2"
+      cpuRequest: 200m
+      mountSources: true
+      sourceMapping: /projects
+      volumeMounts:
+        - name: goose-config
+          path: /home/user/.config/goose
+      env:
+        - name: GOOSE_DISABLE_KEYRING
+          value: "1"
+        - name: GOOSE_MODE
+          value: smart_approve
+        - name: GOOSE_TELEMETRY_OFF
+          value: "1"
+        - name: SHELL
+          value: /bin/bash
+        - name: TERM
+          value: xterm-256color
+        # Option A: hard-code for local smoke tests (not for shared clusters)
+        # - name: GOOSE_PROVIDER
+        #   value: openai
+        # - name: GOOSE_MODEL
+        #   value: gpt-4o
+        #
+        # Option B (recommended): OpenShift Secret — uncomment after creating
+        #   oc create secret generic goose-api-keys \
+        #     --from-literal=GOOSE_PROVIDER=openai \
+        #     --from-literal=GOOSE_MODEL=gpt-4o \
+        #     --from-literal=OPENAI_API_KEY=sk-...
+        # - name: GOOSE_PROVIDER
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: goose-api-keys
+        #       key: GOOSE_PROVIDER
+        # - name: GOOSE_MODEL
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: goose-api-keys
+        #       key: GOOSE_MODEL
+        # - name: OPENAI_API_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: goose-api-keys
+        #       key: OPENAI_API_KEY
+
+  - name: goose-config
+    volume:
+      size: 1Gi
+
+commands:
+  - id: goose-configure
+    exec:
+      label: "1. Configure Goose (first-time provider & key setup)"
+      component: goose
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "goose configure"
+      group:
+        kind: build
+        isDefault: false
+
+  - id: goose-session
+    exec:
+      label: "2. Start Goose Session"
+      component: goose
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "goose session"
+      group:
+        kind: run
+        isDefault: true
+
+  - id: goose-info
+    exec:
+      label: "Goose Info (verify active provider)"
+      component: goose
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: "goose info"
+      group:
+        kind: run
+        isDefault: false

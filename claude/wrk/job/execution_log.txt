@@ -1,0 +1,1 @@
+iris.csv | charts: histogram, scatter, bar (terminal + HTML) | Success

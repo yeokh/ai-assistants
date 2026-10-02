@@ -1,0 +1,35 @@
+Execution Log – Iris Dataset Analysis
+Generated at : 2026-09-30T15:59:55
+============================================================
+
+File processed : iris.csv
+Status         : Success
+
+Charts generated in generate_charts.py:
+  Terminal charts (plotext):
+    1. Histogram   – sepal_length distribution by species
+    2. Histogram   – petal_length distribution by species
+    3. Scatter     – sepal_length vs sepal_width (coloured by species)
+    4. Grouped Bar – mean feature values (sepal_length, sepal_width,
+                     petal_length, petal_width) per species
+
+  HTML charts (iris_charts.html, standalone SVG):
+    1. Histogram   – sepal_length by species
+    2. Histogram   – petal_length by species
+    3. Scatter     – sepal_length vs sepal_width
+    4. Scatter     – petal_length vs petal_width
+    5. Grouped Bar – mean feature values per species
+
+Dependencies used:
+  - csv       (Python built-in) – data loading
+  - plotext   (minimal, terminal-only) – terminal charts
+  - No pandas; HTML charts use hand-rolled SVG
+
+All files written to: /root/ai-assistants/agy/wrk/job/
+  iris.csv               – raw dataset (150 rows, 5 columns)
+  generate_charts.py     – chart generation script
+  iris_charts.html       – standalone HTML chart report
+  execution_log.txt      – this log
+
+============================================================
+End of log.

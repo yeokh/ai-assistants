@@ -1,0 +1,34 @@
+# Autonomous Agent Job: Terminal Data Analysis & Charting
+
+**Objective:** You are an autonomous AI coding agent. Complete the following tasks sequentially without prompting the user for confirmation. 
+
+### 1. Workspace Configuration
+All work must be contained entirely within the `./wrk` directory. 
+* Ensure the `./wrk` directory exists.
+* Create a directory `./wrk/job` for data, generated scripts and logs.
+
+### 2. Data Acquisition
+* Check `./wrk/job`. If it is empty, use Python's built-in `urllib` to download a sample statistical dataset (e.g., the Titanic survival dataset, California Housing dataset or Iris dataset) as a CSV file and save it to `./wrk/job`.
+
+### 3. Processing & Script Generation
+Process every `.csv` file found in `./wrk/job` one by one. For each file:
+* Analyze the dataset's columns and determine the best statistical relationships to visualize.
+* Write a Python script that reads the CSV and generates text-based terminal charts, as well as charts in standalone HTML file.
+* **Dependency Constraints:** You must use Python's built-in `csv` library for data handling (do NOT use `pandas`). Use only popular, minimal libraries for visualization, strictly limiting it to `plotext` for terminal charts. 
+* Save the generated Python script to `./wrk/job/` (e.g., `./wrk/job/generate_charts.py`).
+
+### 4. Logging
+* As you process files, maintain a log at `./wrk/job/execution_log.txt`.
+* For each processed file, log the filename, the types of charts generated in the script, and a "Success" status.
+
+### 5. Termination
+* Stop execution automatically once all the csv files in `./wrk/job` have been processed and the log is updated. Do not ask for further tasks.
+
+
+# How to test AI agent/assistant with Job-Instruction.md #
+
+Place Job-Instruction.md in the current . folder.
+Open your AI agent (like Cursor, Aider, or an open-source terminal agent).
+Send the standard prompt: "Please read ./Job-Instruction.md and complete the tasks."
+
+This is a simple AI assistant/agent benchmark. An advanced agent will successfully bootstrap the folder, fetch the data, write a clean Python script using only the requested minimal libraries, and exit quietly. A weaker agent will fail at the dependency constraints (e.g., hallucinating a pandas requirement) or get stuck in an agentic loop.

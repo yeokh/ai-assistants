@@ -1,0 +1,68 @@
+schemaVersion: 2.2.0
+metadata:
+  name: pi-coding-agent
+  displayName: Pi Coding Agent
+  description: >-
+    AI coding agent workspace with the pi CLI pre-installed.
+    Uses the Web Terminal editor — open a terminal and run `pi`.
+  tags:
+    - ai
+    - coding-agent
+    - pi
+    - terminal
+
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+  # Pin Web Terminal (not VS Code). Requires the editor to be registered —
+  # see README-custom-devspace-editor.md.
+  che-editor: che-incubator/che-web-terminal/latest
+
+components:
+  - name: pi
+    container:
+      image: quay.io/kenghua_yeo/pi-devspaces:v1
+      memoryRequest: 256Mi
+      memoryLimit: 1Gi
+      cpuRequest: 250m
+      cpuLimit: "1"
+      mountSources: true
+      sourceMapping: /projects
+      env:
+        - name: ANTHROPIC_API_KEY
+          value: ""
+        - name: OPENAI_API_KEY
+          value: ""
+        - name: OPENROUTER_API_KEY
+          value: ""
+        - name: GEMINI_API_KEY
+          value: ""
+        - name: SHELL
+          value: /bin/bash
+        - name: TERM
+          value: xterm-256color
+      volumeMounts:
+        - name: pi-agent-home
+          path: /home/user/.pi/agent
+
+  - name: pi-agent-home
+    volume:
+      size: 2Gi
+
+commands:
+  - id: start-pi
+    exec:
+      label: "Start pi agent"
+      component: pi
+      workingDir: /projects
+      commandLine: pi
+      group:
+        kind: run
+        isDefault: true
+
+  - id: pi-help
+    exec:
+      label: "Show pi help"
+      component: pi
+      commandLine: pi --help
+      group:
+        kind: run

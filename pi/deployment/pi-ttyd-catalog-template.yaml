@@ -1,0 +1,183 @@
+# Deploy from Software Catalog or CLI:
+#   oc process -f pi-ttyd-catalog-template.yaml \
+#     -p ANTHROPIC_API_KEY=sk-ant-... \
+#     | oc apply -f -
+#
+# Or: oc apply -f pi-ttyd-catalog-template.yaml -n openshift   # register in catalog
+#
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pi-ttyd
+  annotations:
+    openshift.io/display-name: "Pi TTYD Web Terminal"
+    description: >-
+      Deploys the pi coding agent behind a browser terminal (ttyd). Creates a
+      Secret for LLM API keys, a PVC for agent state, Deployment, Service, and
+      an edge-TLS Route. Starts in bash — run `pi` (or `/login`) in the terminal.
+    openshift.io/provider-display-name: "RH Workshop"
+    iconClass: icon-terminal
+    tags: "terminal,web,ttyd,ai,pi,agent,coding"
+objects:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${APP_NAME}-api-keys
+      labels:
+        app: ${APP_NAME}
+    type: Opaque
+    stringData:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APP_NAME}-agent-pvc
+      labels:
+        app: ${APP_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${AGENT_STORAGE_SIZE}
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: ${APP_NAME}
+      template:
+        metadata:
+          labels:
+            app: ${APP_NAME}
+        spec:
+          securityContext:
+            runAsNonRoot: true
+          containers:
+            - name: pi-ttyd
+              image: ${IMAGE_NAME}
+              imagePullPolicy: Always
+              command: ${{STARTUP_COMMAND}}
+              ports:
+                - containerPort: ${{PORT}}
+                  protocol: TCP
+              envFrom:
+                - secretRef:
+                    name: ${APP_NAME}-api-keys
+              env:
+                - name: TERM
+                  value: xterm-256color
+                - name: HOME
+                  value: /opt/app-root
+              volumeMounts:
+                - name: pi-agent-home
+                  mountPath: /opt/app-root/.pi/agent
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+              readinessProbe:
+                httpGet:
+                  path: /
+                  port: ${{PORT}}
+                initialDelaySeconds: 5
+                periodSeconds: 10
+              livenessProbe:
+                httpGet:
+                  path: /
+                  port: ${{PORT}}
+                initialDelaySeconds: 15
+                periodSeconds: 30
+          volumes:
+            - name: pi-agent-home
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-agent-pvc
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      selector:
+        app: ${APP_NAME}
+      ports:
+        - name: http
+          port: ${{PORT}}
+          targetPort: ${{PORT}}
+          protocol: TCP
+
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      to:
+        kind: Service
+        name: ${APP_NAME}
+        weight: 100
+      port:
+        targetPort: http
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+
+parameters:
+  - name: APP_NAME
+    displayName: Application name
+    description: Prefix for all created resources.
+    value: pi-ttyd
+    required: true
+
+  - name: IMAGE_NAME
+    displayName: Container image
+    description: Full pullspec of the pi-ttyd image.
+    value: quay.io/kenghua_yeo/pi-ttyd:v1
+    required: true
+
+  - name: PORT
+    displayName: Container port
+    value: "7681"
+    required: true
+
+  - name: STARTUP_COMMAND
+    displayName: Startup command (JSON array)
+    description: >-
+      Must be a valid JSON array. Default starts bash so you can run pi /login.
+      To auto-start pi use ["ttyd","--port","7681","--writable","pi"].
+    value: '["ttyd", "--port", "7681", "--writable", "bash"]'
+    required: true
+
+  - name: AGENT_STORAGE_SIZE
+    displayName: Pi agent state PVC size
+    value: 2Gi
+    required: true
+
+  - name: ANTHROPIC_API_KEY
+    displayName: Anthropic API key
+    description: Optional — set at least one provider key.
+
+  - name: OPENAI_API_KEY
+    displayName: OpenAI API key
+
+  - name: OPENROUTER_API_KEY
+    displayName: OpenRouter API key
+
+  - name: GEMINI_API_KEY
+    displayName: Gemini API key

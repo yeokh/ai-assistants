@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# pi CLI developer container image — OpenShift Dev Spaces compatible
+#
+# Concept:
+#   Dev Spaces injects the chosen editor (Web Terminal here). This image is the
+#   *workspace* container — it needs pi and dev tools. Users run `pi` from the
+#   terminal.
+#
+# Base: quay.io/redhat-cop/devspaces-base already includes:
+#   git, curl, jq, vim, bash, zsh, ripgrep, fd, bat, gh-cli, buildah, podman
+#   Arbitrary-UID entrypoint, HOME=/home/user, WORKDIR=/projects
+#
+# Build:  podman build -t quay.io/kenghua_yeo/pi-devspaces:v1 -f Containerfile-devspaces .
+# Test:   podman run --rm -it -e ANTHROPIC_API_KEY=sk-ant-... quay.io/kenghua_yeo/pi-devspaces:v1 bash
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM quay.io/redhat-cop/devspaces-base:latest
+
+LABEL name="pi-devspaces" \
+      summary="pi AI coding agent CLI developer container for OpenShift Dev Spaces" \
+      description="Dev Spaces workspace image with the pi coding agent CLI pre-installed. Run 'pi' from the Web Terminal." \
+      io.k8s.description="pi AI coding agent developer container for OpenShift Dev Spaces" \
+      io.k8s.display-name="Pi Coding Agent Dev Spaces"
+
+# ── 1. Node.js 24 (devspaces-base is UBI9/ubi, uses yum) ─────────────────────
+ENV NODE_VERSION=24.1.0
+
+USER root
+
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+    | tar -xJ -C /usr/local --strip-components=1 \
+ && node --version \
+ && npm --version
+
+# ── 2. pi agent home directory ────────────────────────────────────────────────
+RUN mkdir -p /home/user/.pi/agent \
+ && chown -R 10001:0 /home/user \
+ && chmod -R g=u     /home/user
+
+# ── 3. Install pi CLI ─────────────────────────────────────────────────────────
+USER 10001
+
+RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent \
+ && npm cache clean --force
+
+# ── 4. Environment ────────────────────────────────────────────────────────────
+ENV HOME=/home/user \
+    TERM=xterm-256color \
+    WORK_DIR=/projects
+
+VOLUME ["/home/user/.pi/agent"]
+
+WORKDIR /projects
+CMD ["tail", "-f", "/dev/null"]

@@ -1,0 +1,39 @@
+# Secrets / credentials
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets.*
+
+# Virtualenvs / caches
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.cache/
+node_modules/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Build / coverage
+bin/
+dist/
+*.exe
+*.test/
+*.out
+coverage.*
+
+# Local data / temp
+*.db
+*.sqlite
+*.sqlite3
+tmp/
+temp/

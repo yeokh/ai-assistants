@@ -1,0 +1,226 @@
+# Deploy from Software Catalog or CLI:
+#   oc process -f goose-ttyd-catalog-template.yaml \
+#     -p OPENAI_API_KEY=sk-... \
+#     -p GOOSE_PROVIDER=openai \
+#     -p GOOSE_MODEL=gpt-4o \
+#     | oc apply -f -
+#
+# Or: oc apply -f goose-ttyd-catalog-template.yaml -n openshift   # register in catalog
+#
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: goose-ttyd
+  annotations:
+    openshift.io/display-name: "Goose TTYD Web Terminal"
+    description: >-
+      Deploys Goose AI agent behind a browser terminal (ttyd). Creates a Secret
+      for provider/API keys, PVCs for config and workspace, Deployment, Service,
+      and an edge-TLS Route. Starts in bash — run `goose configure` then
+      `goose session` in the terminal.
+    openshift.io/provider-display-name: "RH Workshop"
+    iconClass: icon-terminal
+    tags: "terminal,web,ttyd,ai,goose,agent"
+objects:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${APP_NAME}-api-keys
+      labels:
+        app: ${APP_NAME}
+    type: Opaque
+    stringData:
+      GOOSE_PROVIDER: ${GOOSE_PROVIDER}
+      GOOSE_MODEL: ${GOOSE_MODEL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APP_NAME}-config
+      labels:
+        app: ${APP_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${CONFIG_STORAGE_SIZE}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APP_NAME}-workspace
+      labels:
+        app: ${APP_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${WORKSPACE_STORAGE_SIZE}
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: ${APP_NAME}
+      template:
+        metadata:
+          labels:
+            app: ${APP_NAME}
+        spec:
+          containers:
+            - name: goose-ttyd
+              image: ${IMAGE_NAME}
+              imagePullPolicy: Always
+              command: ${{STARTUP_COMMAND}}
+              ports:
+                - containerPort: ${{PORT}}
+                  protocol: TCP
+              envFrom:
+                - secretRef:
+                    name: ${APP_NAME}-api-keys
+              env:
+                - name: GOOSE_DISABLE_KEYRING
+                  value: "1"
+                - name: GOOSE_MODE
+                  value: smart_approve
+                - name: GOOSE_TELEMETRY_OFF
+                  value: "1"
+                - name: TERM
+                  value: xterm-256color
+              volumeMounts:
+                - name: goose-config
+                  mountPath: /home/goose/.config/goose
+                - name: goose-workspace
+                  mountPath: /home/goose/workspace
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+              readinessProbe:
+                tcpSocket:
+                  port: ${{PORT}}
+                initialDelaySeconds: 10
+                periodSeconds: 10
+              livenessProbe:
+                tcpSocket:
+                  port: ${{PORT}}
+                initialDelaySeconds: 30
+                periodSeconds: 30
+          volumes:
+            - name: goose-config
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-config
+            - name: goose-workspace
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-workspace
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      selector:
+        app: ${APP_NAME}
+      ports:
+        - name: http
+          port: ${{PORT}}
+          targetPort: ${{PORT}}
+          protocol: TCP
+
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      to:
+        kind: Service
+        name: ${APP_NAME}
+        weight: 100
+      port:
+        targetPort: http
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+
+parameters:
+  - name: APP_NAME
+    displayName: Application name
+    description: Prefix for all created resources.
+    value: goose-ttyd
+    required: true
+
+  - name: IMAGE_NAME
+    displayName: Container image
+    description: Full pullspec of the goose-ttyd image.
+    value: quay.io/kenghua_yeo/goose-ttyd:v1
+    required: true
+
+  - name: PORT
+    displayName: Container port
+    value: "7681"
+    required: true
+
+  - name: STARTUP_COMMAND
+    displayName: Startup command (JSON array)
+    description: >-
+      Must be a valid JSON array. Default starts bash so you can run
+      goose configure / goose session. To auto-start a session use
+      ["ttyd","--port","7681","--writable","goose","session"].
+    value: '["ttyd", "--port", "7681", "--writable", "bash"]'
+    required: true
+
+  - name: GOOSE_PROVIDER
+    displayName: Goose provider
+    description: "e.g. openai, anthropic, openrouter, google, ollama"
+    value: openai
+    required: true
+
+  - name: GOOSE_MODEL
+    displayName: Model name
+    value: gpt-4o
+    required: true
+
+  - name: CONFIG_STORAGE_SIZE
+    displayName: Goose config PVC size
+    value: 1Gi
+    required: true
+
+  - name: WORKSPACE_STORAGE_SIZE
+    displayName: Workspace PVC size
+    value: 5Gi
+    required: true
+
+  - name: OPENAI_API_KEY
+    displayName: OpenAI API key
+    description: Required when GOOSE_PROVIDER=openai.
+
+  - name: ANTHROPIC_API_KEY
+    displayName: Anthropic API key
+    description: Required when GOOSE_PROVIDER=anthropic.
+
+  - name: OPENROUTER_API_KEY
+    displayName: OpenRouter API key
+    description: Required when GOOSE_PROVIDER=openrouter.
+
+  - name: GOOGLE_API_KEY
+    displayName: Google / Gemini API key
+    description: Required when GOOSE_PROVIDER=google.
