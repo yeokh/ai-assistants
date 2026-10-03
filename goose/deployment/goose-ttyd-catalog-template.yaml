@@ -20,7 +20,7 @@ metadata:
       `goose session` in the terminal.
     openshift.io/provider-display-name: "RH Workshop"
     iconClass: icon-terminal
-    tags: "terminal,web,ttyd,ai,goose,agent"
+    tags: "terminal,ttyd,workshop,goose,agent"
 objects:
   - apiVersion: v1
     kind: Secret
