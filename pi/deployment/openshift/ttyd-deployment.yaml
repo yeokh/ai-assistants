@@ -18,7 +18,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: pi-ttyd
-          image: quay.io/kenghua_yeo/pi-ttyd:v1
+          image: quay.io/kenghua_yeo/pi-ttyd:latest
           imagePullPolicy: Always
           # Start in bash so the user can configure / login then run `pi`.
           # To auto-start: ["ttyd", "--port", "7681", "--writable", "pi"]

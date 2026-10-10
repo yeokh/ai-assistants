@@ -1,0 +1,293 @@
+# Deploy from Software Catalog or CLI:
+#   oc process -f opencode-web-catalog-template.yaml \
+#     -p OPENCODE_SERVER_PASSWORD='changeme' \
+#     -p OPENAI_API_KEY=sk-... \
+#     -p OPENCODE_MODEL=openai/gpt-4o \
+#     | oc apply -f -
+#
+# Or: oc apply -f opencode-web-catalog-template.yaml -n openshift   # register in catalog
+#
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: opencode-web
+  annotations:
+    openshift.io/display-name: "OpenCode Web UI"
+    description: >-
+      Deploys OpenCode as a browser web application (`opencode web`) — no ttyd.
+      Creates a Secret for server password and LLM API keys, PVCs for config/data
+      and workspace, Deployment, Service, and an edge-TLS Route. The container
+      listens on 0.0.0.0:4096 and starts in /home/opencode/workspace.
+    openshift.io/provider-display-name: "RH Workshop"
+    iconClass: icon-globe
+    tags: "web,opencode,workshop,agent,ai"
+objects:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ${APP_NAME}-secrets
+      labels:
+        app: ${APP_NAME}
+    type: Opaque
+    stringData:
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD}
+      OPENCODE_SERVER_USERNAME: ${OPENCODE_SERVER_USERNAME}
+      OPENCODE_MODEL: ${OPENCODE_MODEL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APP_NAME}-config
+      labels:
+        app: ${APP_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${CONFIG_STORAGE_SIZE}
+
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: ${APP_NAME}-workspace
+      labels:
+        app: ${APP_NAME}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: ${WORKSPACE_STORAGE_SIZE}
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: ${APP_NAME}
+      template:
+        metadata:
+          labels:
+            app: ${APP_NAME}
+        spec:
+          containers:
+            - name: opencode-web
+              image: ${IMAGE_NAME}
+              imagePullPolicy: Always
+              command: ${{STARTUP_COMMAND}}
+              ports:
+                - containerPort: ${{PORT}}
+                  protocol: TCP
+              envFrom:
+                - secretRef:
+                    name: ${APP_NAME}-secrets
+              env:
+                - name: HOME
+                  value: /home/opencode
+                - name: OPENCODE_DISABLE_AUTOUPDATE
+                  value: "1"
+                - name: OPENCODE_HOSTNAME
+                  value: ${OPENCODE_HOSTNAME}
+                - name: OPENCODE_PORT
+                  value: ${PORT}
+                - name: OPENCODE_CORS
+                  value: ${OPENCODE_CORS}
+              volumeMounts:
+                - name: opencode-config
+                  mountPath: /home/opencode/.config/opencode
+                  subPath: config
+                - name: opencode-config
+                  mountPath: /home/opencode/.local/share/opencode
+                  subPath: share
+                - name: opencode-workspace
+                  mountPath: /home/opencode/workspace
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+              readinessProbe:
+                tcpSocket:
+                  port: ${{PORT}}
+                initialDelaySeconds: 10
+                periodSeconds: 10
+              livenessProbe:
+                tcpSocket:
+                  port: ${{PORT}}
+                initialDelaySeconds: 30
+                periodSeconds: 30
+          volumes:
+            - name: opencode-config
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-config
+            - name: opencode-workspace
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-workspace
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      selector:
+        app: ${APP_NAME}
+      ports:
+        - name: http
+          port: ${{PORT}}
+          targetPort: ${{PORT}}
+          protocol: TCP
+
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      name: ${APP_NAME}
+      labels:
+        app: ${APP_NAME}
+    spec:
+      to:
+        kind: Service
+        name: ${APP_NAME}
+        weight: 100
+      port:
+        targetPort: http
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+
+parameters:
+  - name: APP_NAME
+    displayName: Application name
+    description: >-
+      Prefix used for all created resources (Secret, PVCs, Deployment, Service,
+      Route). Keep it short and DNS-label safe (lowercase, digits, hyphens).
+    value: opencode-web
+    required: true
+
+  - name: IMAGE_NAME
+    displayName: Container image
+    description: >-
+      Full pullspec of the opencode-web image built from Containerfile-web
+      (registry/repo:tag). Must be pullable by the cluster (public or with an
+      image pull secret already configured on the ServiceAccount).
+    value: quay.io/kenghua_yeo/opencode-web:v1
+    required: true
+
+  - name: PORT
+    displayName: Container / Service port
+    description: >-
+      TCP port the OpenCode web server listens on inside the container, and the
+      Service port exposed to the Route. Must match OPENCODE_PORT / the image
+      EXPOSE. Default 4096 matches `opencode web --port 4096`.
+    value: "4096"
+    required: true
+
+  - name: OPENCODE_HOSTNAME
+    displayName: Listen hostname
+    description: >-
+      Address passed to `opencode web --hostname`. Use 0.0.0.0 so the OpenShift
+      Service/Route can reach the process (127.0.0.1 would only accept
+      in-pod connections).
+    value: "0.0.0.0"
+    required: true
+
+  - name: STARTUP_COMMAND
+    displayName: Startup command (JSON array)
+    description: >-
+      Must be a valid JSON array. Default runs the image entrypoint, which
+      starts `opencode web` with cwd=/home/opencode/workspace. Override only for
+      debugging (e.g. ["bash"]) or custom flags.
+    value: '["/usr/local/bin/entrypoint.sh"]'
+    required: true
+
+  - name: OPENCODE_SERVER_PASSWORD
+    displayName: OpenCode server password
+    description: >-
+      Required. Enables HTTP Basic Auth on `opencode web` via
+      OPENCODE_SERVER_PASSWORD. Without this, the server is unsecured on the
+      network. Browser login uses OPENCODE_SERVER_USERNAME (default opencode)
+      and this password.
+    required: true
+
+  - name: OPENCODE_SERVER_USERNAME
+    displayName: OpenCode server username
+    description: >-
+      HTTP Basic Auth username for the web UI. OpenCode defaults to "opencode"
+      when unset; this Template always sets the env var explicitly.
+    value: opencode
+    required: true
+
+  - name: OPENCODE_MODEL
+    displayName: Default model (provider/model)
+    description: >-
+      Default model in OpenCode `provider/model` form (e.g. openai/gpt-4o,
+      anthropic/claude-sonnet-4-5, openrouter/..., google/...). Applied at
+      startup via OPENCODE_CONFIG_CONTENT unless you already set that env var.
+      The matching provider API key below must also be set.
+    value: openai/gpt-4o
+    required: true
+
+  - name: OPENCODE_CORS
+    displayName: Extra CORS origin(s)
+    description: >-
+      Optional. Additional browser origin(s) allowed for CORS, comma- or
+      space-separated full origins (e.g. https://app.example.com). Not required
+      for normal use: the built-in web UI is served from the same Route host
+      (same-origin), so CORS is unnecessary. Set this only if a separate
+      frontend on another origin must call this OpenCode server.
+    value: ""
+
+  - name: CONFIG_STORAGE_SIZE
+    displayName: Config / data PVC size
+    description: >-
+      Size of the PVC that stores OpenCode config (~/.config/opencode) and
+      durable data/auth/sessions (~/.local/share/opencode) via volume subPaths.
+    value: 1Gi
+    required: true
+
+  - name: WORKSPACE_STORAGE_SIZE
+    displayName: Workspace PVC size
+    description: >-
+      Size of the PVC mounted at /home/opencode/workspace. The entrypoint sets
+      this directory as the process cwd so it is the default OpenCode project
+      root for the web UI.
+    value: 5Gi
+    required: true
+
+  - name: OPENAI_API_KEY
+    displayName: OpenAI API key
+    description: >-
+      Optional provider credential. Required when OPENCODE_MODEL uses the
+      openai/ provider (or when you select OpenAI models in the UI). Leave
+      empty if using another provider.
+
+  - name: ANTHROPIC_API_KEY
+    displayName: Anthropic API key
+    description: >-
+      Optional provider credential. Required when OPENCODE_MODEL uses the
+      anthropic/ provider. Leave empty if unused.
+
+  - name: OPENROUTER_API_KEY
+    displayName: OpenRouter API key
+    description: >-
+      Optional provider credential. Required when OPENCODE_MODEL uses the
+      openrouter/ provider. Leave empty if unused.
+
+  - name: GOOGLE_API_KEY
+    displayName: Google / Gemini API key
+    description: >-
+      Optional provider credential. Required when OPENCODE_MODEL uses the
+      google/ provider. Leave empty if unused.

@@ -171,7 +171,7 @@ parameters:
   - name: IMAGE_NAME
     displayName: Container image
     description: Full pullspec of the goose-ttyd image.
-    value: quay.io/kenghua_yeo/goose-ttyd:v1
+    value: quay.io/kenghua_yeo/goose-ttyd:latest
     required: true
 
   - name: PORT

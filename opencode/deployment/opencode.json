@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-4o",
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0"
+  }
+}

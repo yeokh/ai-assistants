@@ -1,16 +1,20 @@
 # Goose AI Agent — OpenShift Dev Spaces image
 #
-# Layers community Goose onto the UDI ubi9 base so workspaces start
+# Layers community Goose onto redhat-cop/devspaces-base so workspaces start
 # with goose on PATH. Uses the official download script (see ../README.md).
+#
+# Base: quay.io/redhat-cop/devspaces-base already includes:
+#   git, curl, jq, vim, bash, zsh, ripgrep, fd, bat, gh-cli, buildah, podman
+#   Arbitrary-UID entrypoint, HOME=/home/user, WORKDIR=/projects
 #
 # Build (from goose/):
 #   podman build \
-#     -t quay.io/kenghua_yeo/goose-devspaces:latest \
+#     -t quay.io/kenghua_yeo/goose-devspaces:v2 \
 #     -f deployment/Containerfile-devspaces \
 #     deployment/
 #
 # Push:
-#   podman push quay.io/kenghua_yeo/goose-devspaces:latest
+#   podman push quay.io/kenghua_yeo/goose-devspaces:v2
 #
 # Update goose:
 #   Rebuild with --no-cache and repush; the devfile image ref picks it up on
@@ -22,12 +26,19 @@
 #       && dnf install -y goose
 #   See README-devspaces.md for details.
 
-FROM quay.io/devfile/universal-developer-image:ubi9-latest
+FROM quay.io/redhat-cop/devspaces-base:latest
+
+LABEL name="goose-devspaces" \
+      summary="Goose AI agent CLI developer container for OpenShift Dev Spaces" \
+      description="Dev Spaces workspace image with Goose pre-installed. Run 'goose' from the Web Terminal." \
+      io.k8s.description="Goose AI agent developer container for OpenShift Dev Spaces" \
+      io.k8s.display-name="Goose AI Agent Dev Spaces"
 
 USER root
 
 # bzip2 is required by the Goose download script.
-RUN dnf install -y bzip2 tar curl \
+# UBI9 ships curl-minimal; do not install curl (conflicts).
+RUN dnf install -y bzip2 tar \
     && curl -fsSL https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh \
          | CONFIGURE=false GOOSE_BIN_DIR=/usr/local/bin bash \
     && command -v goose \
@@ -46,6 +57,9 @@ ENV GOOSE_DISABLE_KEYRING=1 \
     GOOSE_MODE=smart_approve \
     GOOSE_TELEMETRY_OFF=1 \
     HOME=/home/user \
+    TERM=xterm-256color \
     PATH="/usr/local/bin:${PATH}"
 
 USER 10001
+WORKDIR /projects
+CMD ["tail", "-f", "/dev/null"]

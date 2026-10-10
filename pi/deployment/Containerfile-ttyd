@@ -15,7 +15,7 @@
 #     OpenShift Route + OAuth proxy for proper authN/Z
 # ─────────────────────────────────────────────────────────────────────────────
 
-FROM registry.redhat.io/ubi9/nodejs-24-minimal
+FROM registry.access.redhat.com/ubi9/nodejs-24-minimal
 
 # ── 1. System dependencies (as root) ─────────────────────────────────────────
 USER root

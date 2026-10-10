@@ -35,9 +35,9 @@ ARG RHEL_VERSION
 # ── 1. System dependencies + community goose (as root) ───────────────────────
 # Pre-req: bzip2 (used by the Goose download script archive).
 # Install location: /usr/local/bin so the binary is on PATH for any UID.
+# UBI9 ships curl-minimal; do not install curl (conflicts).
 RUN dnf install -y \
     ca-certificates \
-    curl \
     git \
     bzip2 \
     tar \

@@ -18,7 +18,7 @@ Dev Spaces
 
 | File | Purpose |
 |------|---------|
-| `Containerfile-devspaces` | UDI ubi9 + community Goose |
+| `Containerfile-devspaces` | `devspaces-base` + community Goose |
 | `devfile.yaml` | Workspace definition (pins Web Terminal) |
 | `secret-api-keys-devspaces.yaml` | Optional auto-mounted API keys Secret |
 | `che-web-terminal-latest.yaml` | Editor definition |

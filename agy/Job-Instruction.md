@@ -1,4 +1,4 @@
-# Autonomous Agent Job: Terminal Data Analysis & Charting
+# Autonomous Agent Job: Terminal Data Analysis & Charting (Oct 2026)
 
 **Objective:** You are an autonomous AI coding agent. Complete the following tasks sequentially without prompting the user for confirmation. 
 
@@ -6,6 +6,7 @@
 All work must be contained entirely within the `./wrk` directory. 
 * Ensure the `./wrk` directory exists.
 * Create a directory `./wrk/job` for data, generated scripts and logs.
+* Everything in the current folder is read-only except './wrk' and './wrk/job' sub-folders.
 
 ### 2. Data Acquisition
 * Check `./wrk/job`. If it is empty, use Python's built-in `urllib` to download a sample statistical dataset (e.g., the Titanic survival dataset, California Housing dataset or Iris dataset) as a CSV file and save it to `./wrk/job`.
@@ -22,13 +23,20 @@ Process every `.csv` file found in `./wrk/job` one by one. For each file:
 * For each processed file, log the filename, the types of charts generated in the script, and a "Success" status.
 
 ### 5. Termination
-* Stop execution automatically once all the csv files in `./wrk/job` have been processed and the log is updated. Do not ask for further tasks.
+* Stop execution automatically once all the csv files in `./wrk/job` have been processed and the log is updated. 
+* Clean up any temporary artifacts created or downloaded, and are no longer required. 
+* Do not ask for further tasks.
 
 
-# How to test AI agent/assistant with Job-Instruction.md #
+# Note on how to test AI agent/assistant with Job-Instruction.md #
 
 Place Job-Instruction.md in the current . folder.
-Open your AI agent (like Cursor, Aider, or an open-source terminal agent).
+Open your AI agent (like Cursor, Goose, or an open-source terminal agent).
 Send the standard prompt: "Please read ./Job-Instruction.md and complete the tasks."
 
-This is a simple AI assistant/agent benchmark. An advanced agent will successfully bootstrap the folder, fetch the data, write a clean Python script using only the requested minimal libraries, and exit quietly. A weaker agent will fail at the dependency constraints (e.g., hallucinating a pandas requirement) or get stuck in an agentic loop.
+This is a simple AI assistant/agent benchmark. An advanced agent/model should successfully bootstrap the folder, fetch the data, write a clean Python script using only the requested minimal libraries, and exit quietly. 
+
+A weaker agent/model may fail at the dependency constraints (e.g., hallucinating a pandas requirement) or get stuck in an agentic loop.
+
+
+

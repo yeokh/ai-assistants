@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opencode-web
+  labels:
+    app: opencode-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opencode-web
+  template:
+    metadata:
+      labels:
+        app: opencode-web
+    spec:
+      containers:
+        - name: opencode-web
+          image: quay.io/kenghua_yeo/opencode-web:v1
+          imagePullPolicy: Always
+          # Image ENTRYPOINT runs: opencode web --hostname 0.0.0.0 --port 4096
+          # with cwd=/home/opencode/workspace
+          ports:
+            - containerPort: 4096
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /home/opencode
+            - name: OPENCODE_DISABLE_AUTOUPDATE
+              value: "1"
+            - name: OPENCODE_HOSTNAME
+              value: "0.0.0.0"
+            - name: OPENCODE_PORT
+              value: "4096"
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: OPENCODE_SERVER_PASSWORD
+            - name: OPENCODE_SERVER_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: OPENCODE_SERVER_USERNAME
+                  optional: true
+            - name: OPENCODE_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: OPENCODE_MODEL
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: OPENROUTER_API_KEY
+                  optional: true
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-web-secrets
+                  key: GOOGLE_API_KEY
+                  optional: true
+            # Optional: set when a separate browser origin must call this server.
+            # Same-origin access via the OpenShift Route does not need CORS.
+            # - name: OPENCODE_CORS
+            #   value: "https://my-frontend.apps.example.com"
+          volumeMounts:
+            - name: opencode-config
+              mountPath: /home/opencode/.config/opencode
+              subPath: config
+            - name: opencode-config
+              mountPath: /home/opencode/.local/share/opencode
+              subPath: share
+            - name: opencode-workspace
+              mountPath: /home/opencode/workspace
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          # Basic auth is enabled via OPENCODE_SERVER_PASSWORD, so use TCP probes.
+          readinessProbe:
+            tcpSocket:
+              port: 4096
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 4096
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: opencode-config
+          persistentVolumeClaim:
+            claimName: opencode-web-config
+        - name: opencode-workspace
+          persistentVolumeClaim:
+            claimName: opencode-web-workspace

@@ -20,7 +20,7 @@ attributes:
 components:
   - name: pi
     container:
-      image: quay.io/kenghua_yeo/pi-devspaces:v1
+      image: quay.io/kenghua_yeo/pi-devspaces:latest
       memoryRequest: 256Mi
       memoryLimit: 1Gi
       cpuRequest: 250m

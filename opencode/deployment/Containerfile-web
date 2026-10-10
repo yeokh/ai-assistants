@@ -1,0 +1,89 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenCode Web UI container image (OpenShift-compatible)
+#
+# Installs community OpenCode via the official install script (see ../README.md).
+# Starts `opencode web` (no ttyd) on port 4096.
+#
+# Build (from opencode/):
+#   podman build -t quay.io/kenghua_yeo/opencode-web:v1 \
+#     -f deployment/Containerfile-web deployment/
+#
+# Run:    podman run --rm -p 4096:4096 \
+#           -e OPENCODE_SERVER_PASSWORD=changeme \
+#           -e OPENAI_API_KEY=sk-... \
+#           -e OPENCODE_MODEL=openai/gpt-4o \
+#           -v opencode-config:/home/opencode/.config/opencode \
+#           -v opencode-share:/home/opencode/.local/share/opencode \
+#           -v opencode-workspace:/home/opencode/workspace \
+#           quay.io/kenghua_yeo/opencode-web:v1
+#
+# Access: http://localhost:4096  (basic auth user: opencode)
+#
+# OpenShift deployment notes:
+#   - Runs as uid 1001 (no root, no privileged SCC required)
+#   - Exposes port 4096 (unprivileged)
+#   - Set OPENCODE_SERVER_PASSWORD (required for network access)
+#   - Set API keys via Secret → env vars in your Deployment
+# ─────────────────────────────────────────────────────────────────────────────
+
+ARG RHEL_VERSION=9
+
+FROM registry.access.redhat.com/ubi${RHEL_VERSION}:latest
+
+ARG RHEL_VERSION
+
+# ── 1. System dependencies + community opencode (as root) ─────────────────────
+# Install location: /usr/local/bin so the binary is on PATH for any UID.
+RUN dnf install -y \
+    ca-certificates \
+    git \
+    tar \
+    gzip \
+    unzip \
+    python3 \
+    sudo \
+    && curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
+    && install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode \
+    && command -v opencode \
+    && opencode --version \
+    && dnf clean all
+
+# ── 2. Non-root user + directory setup ───────────────────────────────────────
+RUN useradd -m -u 1001 -G wheel opencode \
+    && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel-nopasswd
+
+RUN mkdir -p \
+    /home/opencode/.config/opencode \
+    /home/opencode/.local/share/opencode \
+    /home/opencode/workspace
+
+COPY opencode.json /home/opencode/.config/opencode/opencode.json
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && chown -R 1001:0 /home/opencode \
+    && chmod -R g+rwX /home/opencode
+
+# ── 3. Environment ────────────────────────────────────────────────────────────
+ENV HOME=/home/opencode \
+    PATH="/usr/local/bin:${PATH}" \
+    OPENCODE_DISABLE_AUTOUPDATE=1 \
+    OPENCODE_HOSTNAME=0.0.0.0 \
+    OPENCODE_PORT=4096 \
+    OPENCODE_MODEL=openai/gpt-4o \
+    TERM=xterm-256color
+
+# ── 4. Persist state via named volumes ────────────────────────────────────────
+#   -v opencode-config:/home/opencode/.config/opencode
+#   -v opencode-share:/home/opencode/.local/share/opencode
+#   -v opencode-workspace:/home/opencode/workspace
+VOLUME ["/home/opencode/.config/opencode", "/home/opencode/.local/share/opencode", "/home/opencode/workspace"]
+
+USER 1001
+WORKDIR /home/opencode/workspace
+
+EXPOSE 4096
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Default: opencode web --hostname 0.0.0.0 --port 4096 (see entrypoint.sh)
+CMD []

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: goose-ttyd
-          image: quay.io/kenghua_yeo/goose-ttyd:v1
+          image: quay.io/kenghua_yeo/goose-ttyd:latest
           imagePullPolicy: Always
           # Start in bash so the user can configure then run goose.
           # To auto-start: ["ttyd", "--port", "7681", "--writable", "goose", "session"]
