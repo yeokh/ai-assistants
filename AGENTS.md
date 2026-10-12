@@ -1,6 +1,6 @@
 # Agent instructions
 
-Date: Sep-2026
+Date: Oct-2026
 
 ## Tone and style
 - Be concise and professional. No fluff, filler, or unnecessary preamble.
@@ -10,6 +10,13 @@ Date: Sep-2026
 ## Project context
 
 This is an AI Assistants project repository root containing the setup and deployment artifacts of commercial and open source AI Assistants/Agents such as Claude, Cursor, Pi, Goose etc. 
+
+## File access guardrails
+- **Default scope:** Do not read or write files outside the current project root context unless explicitly requested.
+- **Reading outside project root:** Allowed without user confirmation if explicitly requested, provided the target is within the u
+ser's home directory. Reading outside the user's home directory requires user confirmation.
+- **Writing outside project root:** Strictly prohibited without explicit user confirmation. Writing outside the user's home direct
+ory requires strict/additional user confirmation before proceeding.
 
 ## Git hygiene
 - Never stage or commit secrets: API keys, tokens, passwords, private keys, `.env`, credential JSON, or similar.
