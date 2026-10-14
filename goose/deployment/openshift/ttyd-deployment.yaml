@@ -18,7 +18,7 @@ spec:
         - name: goose-ttyd
           image: quay.io/kenghua_yeo/goose-ttyd:latest
           imagePullPolicy: Always
-          # Start in bash so the user can configure then run goose.
+          # Start in bash so the user can run goose-first-start.sh then goose.
           # To auto-start: ["ttyd", "--port", "7681", "--writable", "goose", "session"]
           command: ["ttyd", "--port", "7681", "--writable", "bash"]
           ports:

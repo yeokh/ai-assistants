@@ -7,6 +7,7 @@ devfile for the [pi coding agent](https://github.com/earendil-works/pi).
 |------|---------|
 | `Containerfile-ttyd` | Web terminal image (ttyd + pi) |
 | `Containerfile-devspaces` | Dev Spaces workspace image |
+| `pi-first-start.sh` | Prompts for provider/model/key, writes config, starts pi (in images as `pi-first-start.sh`) |
 | `pi-ttyd-catalog-template.yaml` | OpenShift Software Catalog Template |
 | `devfile.yaml` | Dev Spaces workspace (Web Terminal editor) |
 | `che-web-terminal-latest.yaml` | Editor definition for Dev Spaces |

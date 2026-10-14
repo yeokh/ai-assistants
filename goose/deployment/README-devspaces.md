@@ -87,8 +87,8 @@ If the Git root is `ai-assistants/`, use `devfilePath=goose/deployment/devfile.y
 In the terminal:
 
 ```bash
-goose configure   # first time
-goose session
+goose-first-start.sh   # first time: set provider/model/key, then starts goose
+goose session   # later runs
 ```
 
 Or use the Dev Spaces command palette entries defined in `devfile.yaml`.

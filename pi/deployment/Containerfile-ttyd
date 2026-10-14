@@ -5,7 +5,7 @@
 #           -e OPENAI_API_KEY=mykey \
 #           -v pi-agent-home:/opt/app-root/.pi/agent \
 #           quay.io/kenghua_yeo/pi-ttyd:v1
-# Access: http://localhost:7681  (starts in bash — run `pi` when ready)
+# Access: http://localhost:7681  (starts in bash — run `pi-first-start.sh` or `pi`)
 #
 # OpenShift deployment notes:
 #   - Runs as uid 1001 (no root, no privileged SCC required)
@@ -39,6 +39,9 @@ RUN curl -L -o /tmp/fd.tar.gz \
  && chmod +x /usr/local/bin/fd \
  && rm -rf /tmp/fd*
 
+# First-run helper: prompts for provider/model/key, writes pi config, starts pi
+COPY --chmod=755 pi-first-start.sh /usr/local/bin/pi-first-start.sh
+
 # ttyd – static self-contained binary, no extra libs required
 RUN curl -L -o /usr/local/bin/ttyd \
     https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
@@ -65,6 +68,6 @@ VOLUME ["/opt/app-root/.pi/agent"]
 
 EXPOSE 7681
 
-# Start in bash so the user can configure / login then run `pi`.
+# Start in bash so the user can run `pi-first-start.sh` (provider/key setup) or `/login`, then `pi`.
 # To auto-start pi: ["ttyd", "--port", "7681", "--writable", "pi"]
 CMD ["ttyd", "--port", "7681", "--writable", "bash"]

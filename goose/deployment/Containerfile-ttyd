@@ -16,7 +16,7 @@
 #           -v goose-workspace:/home/goose/workspace \
 #           quay.io/kenghua_yeo/goose-ttyd:v1
 #
-# Access: http://localhost:7681  (starts in bash — run `goose configure` / `goose session`)
+# Access: http://localhost:7681  (starts in bash — run `goose-first-start.sh` / `goose session`)
 #
 # OpenShift deployment notes:
 #   - Runs as uid 1001 (no root, no privileged SCC required)
@@ -70,6 +70,7 @@ RUN mkdir -p \
 
 COPY config.yaml /home/goose/.config/goose/config.yaml
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=755 goose-first-start.sh /usr/local/bin/goose-first-start.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chown -R 1001:0 /home/goose \
@@ -93,7 +94,7 @@ WORKDIR /home/goose/workspace
 
 EXPOSE 7681
 
-# Start in bash so the user can run `goose configure` then `goose session`.
+# Start in bash so the user can run `goose-first-start.sh` (provider/key setup) then `goose session`.
 # To auto-start a session instead:
 #   ["ttyd", "--port", "7681", "--writable", "goose", "session"]
 CMD ["ttyd", "--port", "7681", "--writable", "bash"]

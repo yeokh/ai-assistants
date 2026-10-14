@@ -99,7 +99,7 @@ commands:
       label: "1. Configure Goose (first-time provider & key setup)"
       component: goose
       workingDir: ${PROJECT_SOURCE}
-      commandLine: "goose configure"
+      commandLine: "goose-first-start.sh"
       group:
         kind: build
         isDefault: false

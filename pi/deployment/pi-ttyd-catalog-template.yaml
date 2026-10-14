@@ -14,7 +14,7 @@ metadata:
     description: >-
       Deploys the pi coding agent behind a browser terminal (ttyd). Creates a
       Secret for LLM API keys, a PVC for agent state, Deployment, Service, and
-      an edge-TLS Route. Starts in bash — run `pi` (or `/login`) in the terminal.
+      an edge-TLS Route. Starts in bash — run `pi-first-start.sh` (or `/login`, then `pi`) in the terminal.
     openshift.io/provider-display-name: "RH Workshop"
     iconClass: icon-terminal
     tags: "terminal,workshop,ttyd,pi,agent"

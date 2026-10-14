@@ -49,9 +49,19 @@ components:
       size: 2Gi
 
 commands:
+  - id: pi-first-start
+    exec:
+      label: "1. Configure pi (first-time provider & key setup)"
+      component: pi
+      workingDir: /projects
+      commandLine: pi-first-start.sh
+      group:
+        kind: build
+        isDefault: false
+
   - id: start-pi
     exec:
-      label: "Start pi agent"
+      label: "2. Start pi agent"
       component: pi
       workingDir: /projects
       commandLine: pi

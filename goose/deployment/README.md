@@ -9,6 +9,7 @@ devfile for [Goose](https://github.com/aaif-goose/goose).
 | `Containerfile-devspaces` | Dev Spaces workspace image |
 | `config.yaml` | Default goose config baked into images |
 | `entrypoint.sh` | Optional entrypoint helper |
+| `goose-first-start.sh` | Prompts for provider/model/key, writes config, starts goose (in images as `goose-first-start.sh`) |
 | `goose-ttyd-catalog-template.yaml` | OpenShift Software Catalog Template |
 | `devfile.yaml` | Dev Spaces workspace (Web Terminal editor) |
 | `che-web-terminal-latest.yaml` | Editor definition for Dev Spaces |

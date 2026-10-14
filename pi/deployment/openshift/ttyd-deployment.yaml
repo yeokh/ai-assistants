@@ -20,7 +20,7 @@ spec:
         - name: pi-ttyd
           image: quay.io/kenghua_yeo/pi-ttyd:latest
           imagePullPolicy: Always
-          # Start in bash so the user can configure / login then run `pi`.
+          # Start in bash so the user can run pi-first-start.sh or /login, then `pi`.
           # To auto-start: ["ttyd", "--port", "7681", "--writable", "pi"]
           command: ["ttyd", "--port", "7681", "--writable", "bash"]
           ports:

@@ -50,6 +50,9 @@ RUN mkdir -p /home/user/.config/goose/custom_providers \
     && chown -R 10001:0 /home/user/.config/goose \
     && chmod -R g+rwX /home/user/.config/goose
 
+# First-run helper: prompts for provider/model/key, writes goose config, starts goose
+COPY --chmod=755 goose-first-start.sh /usr/local/bin/goose-first-start.sh
+
 # Bake in the default extensions config (provider/model are injected at runtime)
 COPY --chown=10001:0 config.yaml /home/user/.config/goose/config.yaml
 

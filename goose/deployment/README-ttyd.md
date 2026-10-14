@@ -1,7 +1,7 @@
 # Goose ttyd Web Terminal — Container & OpenShift Deployment
 
 Run Goose as an interactive web terminal using [ttyd](https://github.com/tsl0922/ttyd).
-The container starts **bash** on port **7681** so you can run `goose configure`
+The container starts **bash** on port **7681** so you can run `goose-first-start.sh`
 then `goose session`.
 
 ## Files
@@ -88,8 +88,8 @@ podman run --rm -p 7681:7681 \
 Open **http://localhost:7681**, then:
 
 ```bash
-goose configure   # if needed
-goose session
+goose-first-start.sh   # first time: set provider/model/key, then starts goose
+goose session   # later runs
 ```
 
 Anthropic / OpenRouter examples — same pattern with the matching env vars.

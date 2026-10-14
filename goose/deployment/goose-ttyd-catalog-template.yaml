@@ -16,7 +16,7 @@ metadata:
     description: >-
       Deploys Goose AI agent behind a browser terminal (ttyd). Creates a Secret
       for provider/API keys, PVCs for config and workspace, Deployment, Service,
-      and an edge-TLS Route. Starts in bash — run `goose configure` then
+      and an edge-TLS Route. Starts in bash — run `goose-first-start.sh` then
       `goose session` in the terminal.
     openshift.io/provider-display-name: "RH Workshop"
     iconClass: icon-terminal
@@ -183,7 +183,7 @@ parameters:
     displayName: Startup command (JSON array)
     description: >-
       Must be a valid JSON array. Default starts bash so you can run
-      goose configure / goose session. To auto-start a session use
+      goose-first-start.sh / goose session. To auto-start a session use
       ["ttyd","--port","7681","--writable","goose","session"].
     value: '["ttyd", "--port", "7681", "--writable", "bash"]'
     required: true

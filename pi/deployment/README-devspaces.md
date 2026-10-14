@@ -1,7 +1,7 @@
 # Pi — OpenShift Dev Spaces
 
 Workspace image with the pi CLI pre-installed. Uses the **Web Terminal**
-editor (not VS Code) so you land in a terminal and run `pi` directly.
+editor (not VS Code) so you land in a terminal and run `pi-first-start.sh` (first time) or `pi` directly.
 
 ## Architecture
 
